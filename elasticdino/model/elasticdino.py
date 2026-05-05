@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import math
 from elasticdino.model.dino import DinoV2, resize_for_dino
+from elasticdino.model.dino import DinoV3, resize_for_dino_V3
+from elasticdino.model.dino import ClipWrapper, resize_for_clip
 from elasticdino.model.layers import ProjectionLayer, ResidualBlock, Activation, FCLayer
 import logging
 from huggingface_hub import hf_hub_download
@@ -150,59 +152,112 @@ CONFIGS = {
   #       start_size=64,
   #       target_size=128,
   #   ),
-    "elasticdino-32-L": dict(
-        dino_model="l",
-        n_features_in=1024,
-        layers={
-            32: dict(hidden_features=512, n_blocks=5, layers_per_block=8),
-            64: dict(hidden_features=256, n_blocks=4, layers_per_block=8),
-            128: dict(hidden_features=256, n_blocks=3, layers_per_block=8),
-        },
-        start_size=32,
-        target_size=128,
-    ),
-    "elasticdino-64-L":  dict(
-        dino_model="l",
-        n_features_in=1024,
-        layers={
-            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
-            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
-            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
-        },
-        start_size=64,
-        target_size=256,
-    ),
-    "elasticdino-64-S":  dict(
+  # # # !!!!!!!!!!!! newly commented out
+    # "elasticdino-32-L": dict(
+    #     dino_model="l",
+    #     n_features_in=1024,
+    #     layers={
+    #         32: dict(hidden_features=512, n_blocks=5, layers_per_block=8),
+    #         64: dict(hidden_features=256, n_blocks=4, layers_per_block=8),
+    #         128: dict(hidden_features=256, n_blocks=3, layers_per_block=8),
+    #     },
+    #     start_size=32,
+    #     target_size=128,
+    # ),
+    # "elasticdino-64-L":  dict(
+    #     dino_model="l",
+    #     n_features_in=1024,
+    #     layers={
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=64,
+    #     target_size=256,
+    # ),
+    # "elasticdino-64-S":  dict(
+    #     dino_model="s",
+    #     n_features_in=384,
+    #     layers={
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=64,
+    #     target_size=256,
+    # ),
+    # "elasticdino-64-B":  dict(
+    #     dino_model="b",
+    #     n_features_in=768,
+    #     layers={
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=64,
+    #     target_size=256,
+    # ),
+    # "elasticdino-64-G":  dict(
+    #     dino_model="g",
+    #     n_features_in=1536,
+    #     layers={
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=64,
+    #     target_size=256,
+    # ),
+    # !!!!!!!!!!!!!! used this until noticed with reg
+    "elasticdino-new-32-S": dict(
         dino_model="s",
         n_features_in=384,
         layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
             64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
             128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
             256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
         },
-        start_size=64,
+        start_size=32,
+        target_size=256,
+        with_reg=True,
+    ),
+    "elasticdino-32-S-no-reg": dict(
+        dino_model="s",
+        n_features_in=384,
+        layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+        },
+        start_size=32,
+        target_size=256,
+        with_reg=False,
+    ),
+    "elasticdino-3-32-S": dict(
+        dino_model="s",
+        n_features_in=384,
+        layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+        },
+        start_size=32,
         target_size=256,
     ),
-    "elasticdino-64-B":  dict(
-        dino_model="b",
-        n_features_in=768,
+    "elasticdino-clip-32-b": dict(
+        clip_model="b",
+        # n_features_in=384, # !!!! maybe needs to be 768
+        n_features_in=768, # !!!! maybe needs to be 768
         layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
             64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
             128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
             256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
         },
-        start_size=64,
-        target_size=256,
-    ),
-    "elasticdino-64-G":  dict(
-        dino_model="g",
-        n_features_in=1536,
-        layers={
-            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
-            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
-            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
-        },
-        start_size=64,
+        start_size=32,
         target_size=256,
     ),
 }
@@ -224,7 +279,7 @@ def repair_checkpoint(path):
 
 
 class ElasticDino(nn.Module):
-  def __init__(self, config, dino_repo):
+  def __init__(self, config, dino_repo, DinoV3_backbone=False, Clip_backbone=False):
     super().__init__()
     self.config = config
 
@@ -240,16 +295,41 @@ class ElasticDino(nn.Module):
         ElasticDinoStage(layer_configs[res], n_features_in, n_image_features) for res in layer_configs
     ])
 
-    self.dino = DinoV2(dino_repo, config["dino_model"])
-
-  def forward(self, images, return_all_scales=False, return_original_features=False, return_displacements=False, n_hidden_layers=None):
-    with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
-      if n_hidden_layers is None:
-        additional_inputs = []
-        features_in = self.dino.get_features_for_tensor(resize_for_dino(images, self.config["start_size"]))
+    self.use_clip = Clip_backbone
+    print(f"in elasticdino init {self.use_clip=}")
+    self.use_dinov3 = DinoV3_backbone
+    if self.use_clip:
+      self.dino = ClipWrapper(config["clip_model"]) # !!!! change it to be backbone instead of dino / clip
+      print("Called clip wrapper in elasticdino")
+    else:
+      if DinoV3_backbone:
+        self.dino = DinoV3(dino_repo, config["dino_model"])
       else:
-        additional_inputs = self.dino.get_intermediate_features_for_tensor(resize_for_dino(images, self.config["start_size"]), n_hidden_layers)
-        features_in = additional_inputs.pop(-1)
+        self.dino = DinoV2(dino_repo, config["dino_model"], config["with_reg"])
+
+  def forward(self, images, return_all_scales=False, return_original_features=False, return_displacements=False, n_hidden_layers=None, external_features=None):
+    if external_features != None:
+      assert return_original_features == False and n_hidden_layers == None
+
+    if self.use_clip:
+      resize_for_back = resize_for_clip
+    else:
+      if self.use_dinov3:
+        resize_for_back = resize_for_dino_V3
+      else:
+        resize_for_back = resize_for_dino
+
+    with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+      if external_features == None:
+        if n_hidden_layers is None:
+          additional_inputs = []
+          features_in = self.dino.get_features_for_tensor(resize_for_back(images, self.config["start_size"]))
+        else:
+          additional_inputs = self.dino.get_intermediate_features_for_tensor(resize_for_back(images, self.config["start_size"]), n_hidden_layers)
+          features_in = additional_inputs.pop(-1)
+      else: 
+        additional_inputs = []
+        features_in = external_features
       features = features_in
       images = nn.functional.interpolate(images, self.config["target_size"], mode="bilinear", antialias=True)
       results = []
@@ -301,14 +381,30 @@ class ElasticDino(nn.Module):
   def train(self, value=True):
     self.stages.train(value)
   
+  # !!!! for clean code would need to extract to util function and have 2 from_pretrained (dinov2 and dinov3)
   def from_pretrained(model_name, checkpoint_path=None, dino_repo='facebookresearch/dinov2'):
     config = CONFIGS[model_name]
+    if config.get("clip_model") and config["clip_model"] is not None:
+      is_clip_backbone = True
+    else:
+      is_clip_backbone = False
+
     if checkpoint_path is None:
       # checkpoint_path = hf_hub_download(repo_id=f"ulyssemizrahi/{model_name}", filename=f"{model_name}.pth")
       checkpoint_path = hf_hub_download(repo_id=f"articuno7/{model_name}", filename=f"{model_name}.pth")
     repair_checkpoint(checkpoint_path) # Doc ???? Why would need to repair?
     checkpoint = torch.load(checkpoint_path, weights_only=True)
-    model = ElasticDino(config, dino_repo)
+    # !!!!!!!!!!!!!
+    if is_clip_backbone:
+      print(f"!!!!!!!!!!!! using Clip, {model_name}")
+      model = ElasticDino(config, None, Clip_backbone=True)
+    else:
+      if dino_repo == 'dinov3':
+        print(f"!!!!!!!!!!!! using DinoV3, {model_name} {dino_repo=}")
+        model = ElasticDino(config, dino_repo, DinoV3_backbone=True)
+      else:
+        print(f"!!!!!!!!!!!! using DinoV2, {model_name} {dino_repo=}")
+        model = ElasticDino(config, dino_repo)
     # don't load parameters in the pretrained dino
     tmp_dino = model.dino
     model.dino = None
