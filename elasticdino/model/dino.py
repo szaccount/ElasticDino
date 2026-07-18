@@ -39,10 +39,10 @@ class DinoV2(nn.Module):
       # !!!!! swtich to non reg version
       if with_reg:
         dino_backbone = torch.hub.load(dino_repo, f'dinov2_vit{dino_model}14_reg', source=source)
-        print("Loaded DinoV2 backbone with reg")
+        print("!!!!! Loaded DinoV2 backbone with reg")
       else:
         dino_backbone = torch.hub.load(dino_repo, f'dinov2_vit{dino_model}14', source=source)
-        print("Loaded DinoV2 backbone with no reg")
+        print("!!!!! Loaded DinoV2 backbone with no reg")
       DINO_CACHE[dino_model] = dino_backbone
 
     # logger.info("DinoV2 backbone loaded")

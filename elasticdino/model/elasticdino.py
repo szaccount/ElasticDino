@@ -235,6 +235,32 @@ CONFIGS = {
         target_size=256,
         with_reg=False,
     ),
+    "elasticdino-32-S-no-reg-no-seg": dict(
+        dino_model="s",
+        n_features_in=384,
+        layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+        },
+        start_size=32,
+        target_size=256,
+        with_reg=False,
+    ),
+    "elasticdino-32-S-no-reg-no-depth": dict(
+        dino_model="s",
+        n_features_in=384,
+        layers={
+            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+        },
+        start_size=32,
+        target_size=256,
+        with_reg=False,
+    ),
     "elasticdino-3-32-S": dict(
         dino_model="s",
         n_features_in=384,
