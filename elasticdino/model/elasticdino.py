@@ -209,19 +209,19 @@ CONFIGS = {
     #     target_size=256,
     # ),
     # !!!!!!!!!!!!!! used this until noticed with reg
-    "elasticdino-new-32-S": dict(
-        dino_model="s",
-        n_features_in=384,
-        layers={
-            32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
-            64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
-            128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
-            256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
-        },
-        start_size=32,
-        target_size=256,
-        with_reg=True,
-    ),
+    # "elasticdino-new-32-S": dict(
+    #     dino_model="s",
+    #     n_features_in=384,
+    #     layers={
+    #         32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=32,
+    #     target_size=256,
+    #     with_reg=True,
+    # ),
     "elasticdino-32-S-no-reg": dict(
         dino_model="s",
         n_features_in=384,
@@ -286,6 +286,19 @@ CONFIGS = {
         start_size=32,
         target_size=256,
     ),
+    # "elasticdino-32-S-imagenetonly": dict(
+    #     dino_model="s",
+    #     n_features_in=384,
+    #     layers={
+    #         32: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         64: dict(hidden_features=512, n_blocks=3, layers_per_block=6),
+    #         128: dict(hidden_features=256, n_blocks=2, layers_per_block=6),
+    #         256: dict(hidden_features=128, n_blocks=1, layers_per_block=4),
+    #     },
+    #     start_size=32,
+    #     target_size=256,
+    #     with_reg=False,
+    # ),
 }
 
 def repair_checkpoint(path):
