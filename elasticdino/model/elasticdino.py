@@ -113,6 +113,7 @@ class DeformerBlock(nn.Module):
     results["additional_inputs"] = add
     if return_displacements:
       results["displacements"] = displacements
+      results["sampling_field"] = field
     return results
 
 
@@ -126,6 +127,7 @@ class ElasticDinoStage(nn.Module):
 
   def forward(self, features, images, return_displacements=False, additional_inputs=[]):
     displacements = []
+    sampling_fields = []
     images = torch.nn.functional.interpolate(images, features.shape[-1], mode="bilinear")
     for block in self.blocks:
         block_results = block(features, images, return_displacements, additional_inputs)
@@ -133,9 +135,11 @@ class ElasticDinoStage(nn.Module):
         additional_inputs = block_results["additional_inputs"]
         if return_displacements:
           displacements.append(block_results["displacements"])
+          sampling_fields.append(block_results["sampling_field"])
     results = dict(features=features)
     if return_displacements:
       results["displacements"] = displacements
+      results["sampling_fields"] = sampling_fields
     if additional_inputs is not None:
       results["additional_inputs"] = additional_inputs
     return results
@@ -373,6 +377,7 @@ class ElasticDino(nn.Module):
       images = nn.functional.interpolate(images, self.config["target_size"], mode="bilinear", antialias=True)
       results = []
       all_displacements = []
+      all_sampling_fields = []
       n = len(self.stages)
       current_size = features.shape[-1]
       for i in range(n):
@@ -383,10 +388,12 @@ class ElasticDino(nn.Module):
           results.append(features)
         additional_inputs = stage_outputs["additional_inputs"]
 
+        if return_displacements:
+          all_displacements.append(stage_outputs["displacements"])
+          all_sampling_fields.append(stage_outputs["sampling_fields"])
+
         del stage_outputs
 
-        if return_displacements:
-          all_displacements.append(features["displacements"])
         if i < n - 1:
           current_size *= 2
           features = torch.nn.functional.interpolate(features, current_size, mode="nearest")
@@ -401,12 +408,14 @@ class ElasticDino(nn.Module):
         out["original_features"] = features_in
       if return_displacements:
         out["displacements"] = all_displacements
+        out["sampling_fields"] = all_sampling_fields
       if n_hidden_layers is not None:
         additional_inputs.append(features)
         out["hidden_layers"] = additional_inputs
       
       del additional_inputs
       del all_displacements
+      del all_sampling_fields
       del features_in
       del results
       del features
